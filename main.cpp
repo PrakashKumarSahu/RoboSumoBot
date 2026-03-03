@@ -6,32 +6,13 @@
 #define ENA 33
 #define ENB 32
 
-#define WASHER_MOTOR 13
-#define SPRAY_MOTOR  15
-#define GAS_SENSOR   34   // input only
-
 /************* WIFI *************/
 #include <WiFi.h>
 
 const char* ap_ssid = "ESP32_ROBOT";
 const char* ap_password = "12345678";
 
-/************* GLOBAL *************/
-bool dustDetected = false;
-
 /************* MOTOR FUNCTIONS *************/
-void water() {
-  digitalWrite(WASHER_MOTOR, HIGH);
-  delay(2000);
-  digitalWrite(WASHER_MOTOR, LOW);
-}
-
-void rotate() {
-  digitalWrite(SPRAY_MOTOR, HIGH);
-  delay(2000);
-  digitalWrite(SPRAY_MOTOR, LOW);
-}
-
 void left() {
   digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
   digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
@@ -71,15 +52,7 @@ void setup() {
   analogWrite(ENB, 200);
   stopMotors();
 
-  // Washer and spray motors
-  pinMode(WASHER_MOTOR, OUTPUT);
-  pinMode(SPRAY_MOTOR, OUTPUT);
-  digitalWrite(WASHER_MOTOR, LOW);
-  digitalWrite(SPRAY_MOTOR, LOW);
-
-  pinMode(GAS_SENSOR, INPUT);
-
-  // 🔥 ESP32 ACCESS POINT MODE
+  //  ESP32 ACCESS POINT MODE
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ap_ssid, ap_password);
 
@@ -93,9 +66,6 @@ void setup() {
 /************* LOOP *************/
 void loop() {
 
-  // GAS / DUST SENSOR
-  dustDetected = (digitalRead(GAS_SENSOR) == LOW);
-
   // WEB CONTROL
   WiFiClient client = server.available();
   if (!client) return;
@@ -103,13 +73,6 @@ void loop() {
   String request = client.readStringUntil('\r');
   client.flush();
 
-  // if (request.indexOf("/forward") != -1) forward();
-  // else if (request.indexOf("/backward") != -1) backward();
-  // else if (request.indexOf("/left") != -1) left();
-  // else if (request.indexOf("/right") != -1) right();
-  // else if (request.indexOf("/stop") != -1) stopMotors();
-  // else if (request.indexOf("/water") != -1) water();
-  // else if (request.indexOf("/rotate") != -1) rotate();
     if (request.indexOf("/forward") != -1 || request.indexOf("/move?dir=forward") != -1)
     forward();
   else if (request.indexOf("/backward") != -1 || request.indexOf("/move?dir=backward") != -1)
@@ -120,10 +83,6 @@ void loop() {
     right();
   else if (request.indexOf("/stop") != -1 || request.indexOf("/move?dir=stop") != -1)
     stopMotors();
-  else if (request.indexOf("/water") != -1 || request.indexOf("/action?type=1") != -1)
-    water();
-  else if (request.indexOf("/rotate") != -1 || request.indexOf("/action?type=2") != -1)
-    rotate();
 
   // HTML RESPONSE
   client.println("HTTP/1.1 200 OK");
@@ -138,15 +97,6 @@ void loop() {
   client.println("<a href='/left'><button>Left</button></a>");
   client.println("<a href='/right'><button>Right</button></a><br><br>");
   client.println("<a href='/stop'><button>Stop</button></a><br><br>");
-
-  client.println("<a href='/water'><button>Water Spray</button></a><br><br>");
-  client.println("<a href='/rotate'><button>Rotate Brush</button></a>");
-
-  client.println("<hr>");
-  if (dustDetected)
-    client.println("<p style='color:red;font-size:20px;'><b>🚨 DUST DETECTED</b></p>");
-  else
-    client.println("<p style='color:green;font-size:20px;'><b>✅ NO DUST</b></p>");
 
   client.println("</body></html>");
   client.stop();
